@@ -1,0 +1,26 @@
+<script type="module">
+
+	import { WASI } from "https://unpkg.com/@wasmer/wasi@0.11.2/lib/index.esm.js?module";
+	import { WasmFs } from "https://unpkg.com/@wasmer/wasmfs@0.11.2/lib/index.esm.js?module";
+
+	const wasmFs  = new WasmFs();
+	const wasi = new WASI({
+		bindings: {
+			...WASI.defaultBindings,
+			fs: wasmFs.fs
+		}
+	});
+
+	(async () => {
+		const response = await fetch("../build/untouched.wasm");
+		const buffer = await response.arrayBuffer();
+		const bytes = await WebAssembly.compile(buffer);
+		const instance = await WebAssembly.instantiate(bytes, { ...wasi.getImports(bytes) });
+		wasi.start(instance);
+		console.log(instance);
+		console.log(instance.exports.getAClockId());
+		const stdout = await wasmFs.getStdOut();
+		console.log(stdout);
+	})();
+
+</script>
